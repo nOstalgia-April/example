@@ -143,15 +143,15 @@
 - 2025：`stack-overflow-developer-survey-2025/survey_results_public.csv` + `stack-overflow-developer-survey-2025/survey_results_schema.csv` + `stack-overflow-developer-survey-2025/2025_Developer_Survey_Tool.pdf`
 
 说明：
-- 以每年的 `survey_results_schema.csv` 为“题目字典”，用 `qname → question` 确认题意并做跨年对齐；用 `survey_results_public.csv` 的列名/取值实现指数计算。
+- 以每年的 `survey_results_schema.csv` 为"题目字典"，用 `qname → question` 确认题意并做跨年对齐；用 `survey_results_public.csv` 的列名/取值实现指数计算。
 - `NA` 代表未回答/不适用（常见原因：未使用 AI 工具的人不会继续回答部分 AI 细题）。
 
 ## 2. 业务架构（Business → Analytics Pipeline）
-1) **问卷对齐层**：按年读取 schema，建立“跨年题目映射表”（同名但题意变化的列必须用 `question` 校验）  
-2) **指数构建层**：从“跨年可比题”优先构造核心指数；对仅部分年份存在的题构造扩展指数（标注适用年份）  
+1) **问卷对齐层**：按年读取 schema，建立"跨年题目映射表"（同名但题意变化的列必须用 `question` 校验）  
+2) **指数构建层**：从"跨年可比题"优先构造核心指数；对仅部分年份存在的题构造扩展指数（标注适用年份）  
 3) **趋势/变化分析层**：按年输出指数分布、均值/中位数、分组差异（开发者角色/工作年限/远程办公等）  
-4) **影响评估层**：以 AI 使用强度/覆盖度为自变量，分析对“效率/学习/满意度”等的关联（分层对比 + 回归控制）  
-5) **画像分群层**：用“AI 使用强度+态度/信任+场景覆盖+摩擦/挑战（有则用）”聚类；再用人口统计/职业变量做画像解释
+4) **影响评估层**：以 AI 使用强度/覆盖度为自变量，分析对"效率/学习/满意度"等的关联（分层对比 + 回归控制）  
+5) **画像分群层**：用"AI 使用强度+态度/信任+场景覆盖+摩擦/挑战（有则用）"聚类；再用人口统计/职业变量做画像解释
 
 ## 3. 指数设计：问题来源（按年份）与计算方法
 优先跨年可比：下面标注为 **[2023/2024/2025]** 的指数可用于三年趋势；仅部分年份存在的标注为 **[2024–2025]**、**[2025 only]**。
@@ -165,7 +165,7 @@
 - 列名（public.csv）：`AISelect`
 - 计算（建议映射，保证跨年可比）
   - 2023/2024：`Yes=100`；`No, but I plan to soon=30`；`No, and I don't plan to=0`
-  - 2025：`Yes, daily=100`；`weekly=75`；`monthly or infrequently=40`；`No, but I plan to soon=30`；`No, and I don't plan to=0`
+  - 2025：`Yes, I use AI tools daily=100`；`Yes, I use AI tools weekly=75`；`Yes, I use AI tools monthly or infrequently=40`；`No, and I don't plan to=0`
 
 **(I2) AI 工作流覆盖指数（当前使用）`AI_WorkflowCoverage_Current`（0–100）[2023/2024/2025]**
 - 题目来源
@@ -180,18 +180,25 @@
   - `Writing code`、`Testing code`、`Debugging and getting help`、`Committing and reviewing code`、`Deployment and monitoring`、`Documenting code`、`Learning about a codebase`、`Project planning`
 - 计算
   - 2023/2024：覆盖数 = `AIToolCurrently Using` 中命中上述 8 场景的个数；指数 = 覆盖数 / 8 * 100
-  - 2025：覆盖数 =（`mostly AI` 命中数 * 1.0）+（`partially AI` 命中数 * 0.5）；指数 = 覆盖数 / 8 * 100
+  - 2025：覆盖数 =（`AIToolCurrently mostly AI` 命中数 * 1.0）+（`AIToolCurrently partially AI` 命中数 * 0.5）；指数 = 覆盖数 / 8 * 100
 
-**(I3) AI 工具使用广度指数 `AI_ToolBreadth`（0–100）[2023–2024 可比；2025 扩展]**
+**(I3) AI 工具使用广度指数 `AI_ToolBreadth`（0–100）[2023–2025]**
 - 题目来源
   - 2023 `AISearch`：`Which AI-powered search tools did you use regularly over the past year, and which do you want to work with over the next year?`
   - 2023 `AIDev`：`Which AI-powered developer tools did you use regularly over the past year, and which do you want to work with over the next year?`
   - 2024 `AISearchDev`：`Which AI-powered search and developer tools did you use regularly over the past year, and which do you want to work with over the next year?`
+  - 2025 `DevEnvs`：`Which development environments and AI-enabled code editing tools did you use regularly over the past year, and which do you want to work with over the next year?`
+  - 2025 `AIModels`：`Which LLM models for AI tools have you used for development work in the past year, and which would you like to use next year?`
 - 列名（public.csv）
   - 2023：`AISearchHaveWorkedWith` + `AIDevHaveWorkedWith`（去重后的工具个数）
   - 2024：`AISearchDevHaveWorkedWith`（工具个数）
-  - 2025（扩展，不强求跨年可比）：`DevEnvsHaveWorkedWith`（含 AI-enabled 编辑器）与 `AIModelsHaveWorkedWith`（LLM 模型）
-- 计算：工具个数 /（该年工具选项总数）* 100（或仅做“工具个数”的绝对值趋势，避免不同年份选项数变化带来的偏差）
+  - 2025：`DevEnvsHaveWorkedWith` + `AIModelsHaveWorkedWith`（去重后的工具个数）
+- 计算：提供两种计算方法
+  - 绝对值方法：直接统计使用的工具数量
+  - 相对值方法：工具个数 /（该年工具选项总数）* 100
+  - 2023年工具选项总数：约20种（AISearch 12种 + AIDev 8种）
+  - 2024年工具选项总数：约12种（AISearchDev 12种）
+  - 2025年工具选项总数：约45种（DevEnvs 25种 + AIModels 20种）
 
 ### 3.2 开发者态度变化（Attitude & Trust）
 **(I4) AI 态度指数 `AI_Attitude`（0–100）[2023/2024/2025]**
@@ -236,13 +243,13 @@
   - 2024 `AIComplex`：`How well do the AI tools you use... handle complex tasks?`
   - 2025 `AIComplex`：同上
 - 列名（public.csv）：`AIComplex`
-- 计算：按选项从“Very well”到“Very poor”做 0–100 映射（含“不使用/不知道”可单列为缺失或低分）
+- 计算：按选项从"Very well"到"Very poor"做 0–100 映射（含"不使用/不知道"可单列为缺失或低分）
 
 **(I9) AI Agent 实际影响指数（效率/学习/质量/协作）`AI_AgentImpact_*`（0–100）[2025 only]**
 - 题目来源
   - 2025 `AIAgentImpact`：`To what extent do you agree with the following statements regarding the impact of AI agents on your work as a developer?`
   - 该题包含多条陈述（例如：`AI agents have increased my productivity.`、`...accelerated my learning...` 等）
-- 列名（public.csv）：以同意程度拆成多列（如 `AIAgentImpactStrongly agree`、`AIAgentImpactSomewhat agree` 等），每列存放“被选中的陈述列表”
+- 列名（public.csv）：以同意程度拆成多列（如 `AIAgentImpactStrongly agree`、`AIAgentImpactSomewhat agree` 等），每列存放"被选中的陈述列表"
 - 计算：对每条陈述做强度打分（`Strongly agree=1`、`Somewhat agree=0.5`、`Neutral=0`、`Somewhat disagree=-0.5`、`Strongly disagree=-1`），再按主题聚合并归一化到 0–100
 
 ### 3.4 工作满意度影响（Satisfaction）
@@ -255,7 +262,7 @@
 - 分析建议：用 `AI_Adoption`/`AI_WorkflowCoverage_Current` 分桶比较均值；并用回归控制（工作年限、岗位、远程等）降低混杂影响
 
 补充说明：
-- 2023 年 public.csv 中没有 `JobSat` 量表列，因此“满意度的跨年变化”建议以 2024–2025 为研究窗口。
+- 2023 年 public.csv 中没有 `JobSat` 量表列，因此"满意度的跨年变化"建议以 2024–2025 为研究窗口。
 
 ### 3.5 学习方式与学习投入（Learning）
 **(I11) AI 学习相关使用指数 `AI_UseForLearning`（0–100）[2023/2024/2025]**
@@ -264,7 +271,7 @@
 - 跨年可比口径（优先用一致场景）
   - 2023/2024：是否在 `AIToolCurrently Using` 中选择 `Learning about a codebase`
   - 2025：是否在 `AIToolCurrently mostly AI` 或 `AIToolCurrently partially AI` 中选择 `Learning about a codebase`（可把 `Learning new concepts or technologies` 作为扩展项单独统计）
-- 计算：选择则 100，否则 0（或把“mostly=100、partially=50”做强度化）
+- 计算：选择则 100，否则 0（或把"mostly=100、partially=50"做强度化）
 
 **(I12) AI 学习投入指数 `AI_LearnEngagement`（0–100）[2025 only]**
 - 题目来源
@@ -273,32 +280,51 @@
 - 列名（public.csv）：`LearnCodeAI`、`AILearnHow`
 - 计算（示例）：`LearnCodeAI` 映射为 0/100（学过=100，不学=0），再叠加 `AILearnHow` 的渠道多样性（渠道数/该题总选项数 * 100）做加权平均
 
-## 4. 用户画像（Personas）：类目从哪里来、怎么丰富
-### 4.1 画像维度（建议优先从“AI 行为 + 态度 + 体验结果”构建）
+## 4. 实现与代码
+
+所有上述指数均已通过 `task1.py` 文件实现，该文件能够处理2023、2024和2025三年的Stack Overflow开发者调查数据，并计算出所有定义的指数。计算结果将保存为CSV文件，供后续分析使用。
+
+主要功能：
+- 自动加载各年份的调查数据
+- 根据各年份问卷结构差异正确计算各项指数
+- 支持跨年可比性分析
+- 保留绝对值和相对值两种计算方法（如AI工具广度指数）
+- 输出结果包含所有定义的指数，便于后续趋势分析和用户画像构建
+
+使用方法：
+```bash
+cd final\ project
+python task1.py
+```
+
+执行完成后，结果将保存在 `final project/results/` 目录下，每年生成一个CSV文件，包含所有受访者的各项指数计算结果。
+
+## 5. 用户画像（Personas）：类目从哪里来、怎么丰富
+### 5.1 画像维度（建议优先从"AI 行为 + 态度 + 体验结果"构建）
 - AI 行为：`AI_Adoption`、`AI_WorkflowCoverage_Current`、`AI_ToolBreadth`
 - AI 态度/信任：`AI_Attitude`、`AI_Trust`、`AI_Threat`
 - AI 使用体验（有则用）：2024 `AIChallenges`；2025 `SOFriction`、`AIFrustration`、`AIAgents`、`AIAgentChange`、`AI_AgentImpact_*`
 - 结果变量：`JobSatisfaction`（2024/2025）
 
-### 4.2 分群方法与“富化解释”
+### 5.2 分群方法与"富化解释"
 - 分群输入：上述指数（统一 0–100）+ 若干关键哑变量（是否使用 agents、是否有高摩擦等）
 - 分群方法：混合型数据可用 Gower 距离 + 层次聚类（或 k-prototypes）；输出 4–8 类
-- 富化解释（画像“像人”）：对每类补充开发者背景变量的分布差异（如 `MainBranch`、`Employment`、`WorkExp/YearsCodePro`、`RemoteWork`、`Country`、常用技术栈等），并给出每类的“代表性特征 Top-N”
+- 富化解释（画像"像人"）：对每类补充开发者背景变量的分布差异（如 `MainBranch`、`Employment`、`WorkExp/YearsCodePro`、`RemoteWork`、`Country`、常用技术栈等），并给出每类的"代表性特征 Top-N"
 
-### 4.3 使用 AI（大模型）自动“写画像描述”（可行性与落地方式）
-技术上可行，且适合把聚类结果转成可读的“人群画像文案”。关键前提：**把 AI 的输入限制为结构化的聚合统计/差异点**，而不是把整份原始问卷逐行喂给模型。
+### 5.3 使用 AI（大模型）自动"写画像描述"（可行性与落地方式）
+技术上可行，且适合把聚类结果转成可读的"人群画像文案"。关键前提：**把 AI 的输入限制为结构化的聚合统计/差异点**，而不是把整份原始问卷逐行喂给模型。
 
 推荐工作流：
 1) **先算人群特征表**（每个 cluster 一行）
    - 基础：`cluster_id`、样本量 `n`、占比 `pct`
    - 核心指数：`AI_Adoption`、`AI_WorkflowCoverage_Current`、`AI_Attitude`、`AI_Trust`、`AI_Threat`、`JobSatisfaction` 的均值/中位数/分位数
    - 关键行为：高摩擦占比（由 `SOFriction` 映射）、agents 使用占比（`AIAgents`）
-   - “代表性特征 Top-N”：对比全体（或其他 cluster）后，差异最大的变量（百分点差/均值差）
-2) **把“数字 + 结论约束”喂给 AI 写文案**
+   - "代表性特征 Top-N"：对比全体（或其他 cluster）后，差异最大的变量（百分点差/均值差）
+2) **把"数字 + 结论约束"喂给 AI 写文案**
    - 输入建议：每个 cluster 的 JSON（或表格）+ 统一写作模板（见下）
-   - 输出要求：只基于提供的数据描述，不得杜撰；每段必须引用 2–4 个关键数值（如“采用强度中位数/高摩擦占比/满意度”）
+   - 输出要求：只基于提供的数据描述，不得杜撰；每段必须引用 2–4 个关键数值（如"采用强度中位数/高摩擦占比/满意度"）
 3) **人工与规则校验**
-   - 校验 AI 文案里的数值是否与表一致；出现“无依据推断”则删改
+   - 校验 AI 文案里的数值是否与表一致；出现"无依据推断"则删改
    - 对敏感/身份类推断（地区、行业刻板印象）明确禁止
 
 写作模板（给 AI 的约束提示）建议包含：
